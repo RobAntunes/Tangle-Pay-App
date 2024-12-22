@@ -1,0 +1,41 @@
+<svg
+                          viewBox="0 0 200 200"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <!-- Four overlapping rings with perfect spacing -->
+                          <circle
+                            cx="80"
+                            cy="80"
+                            r="50"
+                            fill="white"
+                            stroke="black"
+                            stroke-width="12"
+                          />
+
+                          <circle
+                            cx="120"
+                            cy="80"
+                            r="50"
+                            fill="white"
+                            stroke="black"
+                            stroke-width="12"
+                          />
+
+                          <circle
+                            cx="80"
+                            cy="120"
+                            r="50"
+                            fill="white"
+                            stroke="black"
+                            stroke-width="12"
+                          />
+
+                          <circle
+                            cx="120"
+                            cy="120"
+                            r="50"
+                            fill="white"
+                            stroke="black"
+                            stroke-width="12"
+                          />
+                        </svg>

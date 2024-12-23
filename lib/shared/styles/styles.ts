@@ -8,12 +8,13 @@ const styles = StyleSheet.create({
       alignItems: "center",
       justifyContent: "center",
       width: "100%",
+      height: "100%",
     },
     logo: {
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      marginTop: 20,
+      marginTop: 75,
     },
     scrollView: {
       width: "100%",

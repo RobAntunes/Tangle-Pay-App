@@ -1,5 +1,5 @@
-import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { getFontFamily } from "@/lib/utils/fontFamily";
+import GoogleAuthButton from "../../components/GoogleAuthButton";
+import { getFontFamily } from "../../lib/utils/fontFamily";
 import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -12,8 +12,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
-import styles from "./shared/styles/styles";
-import { AuthWithOAuth } from "./shared/functions/AuthWithOAuth";
+import styles from "../../lib/shared/styles/styles";
+import AuthWithOAuth from "../../lib/shared/functions/AuthWithOAuth";
 import Logo from "../../assets/images/loogoo.svg";
 
 const SignupScreen = () => {

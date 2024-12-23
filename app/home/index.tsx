@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { getFontFamily } from "../../lib/utils/fontFamily";
-import {  useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 
 export interface ClientTanglePayAccount {
   debits_pending: bigint;
@@ -56,7 +56,6 @@ const HomeScreen = () => {
 
   const router = useRouter();
 
-
   const handleSignOut = async () => {
     const res = await fetch("http://10.0.2.2:8000/auth/signout");
     if (!res.ok || res.status !== 200) {
@@ -87,13 +86,6 @@ const HomeScreen = () => {
     setAccounts(data);
   };
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  useEffect(() => {
-    console.log("accounts", accounts);
-  });
 
   return (
     <View style={styles.container}>

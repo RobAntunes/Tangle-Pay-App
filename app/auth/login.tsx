@@ -1,6 +1,5 @@
-import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { getFontFamily } from "@/lib/utils/fontFamily";
-import { Link, useRouter } from "expo-router";
+import GoogleAuthButton from "../../components/GoogleAuthButton";
+import { getFontFamily } from "../../lib/utils/fontFamily";
 import React, { useState } from "react";
 import {
   Text,
@@ -13,8 +12,9 @@ import {
   TouchableOpacity,
 } from "react-native";
 import Logo from "../../assets/images/loogoo.svg";
-import styles from "./shared//styles/styles";
-import { AuthWithOAuth } from "./shared/functions/AuthWithOAuth";
+import styles from "../../lib/shared/styles/styles";
+import AuthWithOAuth from "../../lib/shared/functions/AuthWithOAuth";
+import { Link, useRouter } from "expo-router";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
@@ -62,7 +62,7 @@ const LoginScreen = () => {
         return;
       }
       router.setParams({ email });
-      router.navigate("/");
+      router.navigate("/home");
     } catch (e) {
       console.log(e);
       (e as Error).message ? setError((e as Error).message) : setError(error);
@@ -70,12 +70,6 @@ const LoginScreen = () => {
     }
     setLoading(false);
   };
-
-  function handleChangeToSignup() {
-    if (router) {
-      router.navigate("/auth/signup");
-    }
-  }
 
   return (
     <SafeAreaView style={styles.container}>

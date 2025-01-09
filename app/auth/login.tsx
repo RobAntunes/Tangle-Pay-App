@@ -1,4 +1,6 @@
-import GoogleAuthButton from "../../components/GoogleAuthButton";
+// LoginScreen.tsx
+
+import "react-native-get-random-values";
 import { getFontFamily } from "../../lib/utils/fontFamily";
 import React, { useState } from "react";
 import {
@@ -12,12 +14,12 @@ import {
   TouchableOpacity,
 } from "react-native";
 import Logo from "../../assets/images/loogoo.svg";
-import styles from "../../lib/shared/styles/styles";
-import AuthWithOAuth from "../../lib/shared/functions/AuthWithOAuth";
 import { Link, useRouter } from "expo-router";
+import { storage } from "@/lib/storage";
+import styles from "../../lib/shared/styles/auth";
+import { decryptStringFromXChaCha20Poly1305 } from "@/lib/utils/encrypt";
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,49 +28,50 @@ const LoginScreen = () => {
 
   const signInWithPassword = async () => {
     setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("http://10.0.2.2:8000/auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: email, password: password }),
-      });
-      console.log(res);
+    setError(null); // Reset previous errors
 
-      if (!res.ok || res.status !== 200) {
-        if (!email || !password) {
-          const msg = "Email and password are required.";
-          console.log(msg);
-          setError(msg);
-        }
-        //TODO: Migrate to Yum or Zod
-        else if (!/\S+@\S+\.\S+/.test(email)) {
-          const msg = "Invalid email address.";
-          setError(msg);
-        } else if (res.status === 400) {
-          setError("Bad Request");
-        } else if (res.status === 401) {
-          setError("Please verify your account before logging in.");
-        } else if (res.status === 404) {
-          setError("This email address is not associated with an account");
-        } else if (res.status === 500) {
-          setError("Internal Server Error, please try again");
-        } else {
-          setError("Login failed. Please check your credentials.");
-        }
-        setLoading(false);
+    try {
+      if (!password) {
+        throw new Error("Password is required");
+      }
+
+      const salt = await storage.getItem("salt");
+
+      if (!salt) {
+        // No salt found implies no wallet exists; redirect to signup
+        router.replace("/auth/signup");
         return;
       }
-      router.setParams({ email });
-      router.navigate("/home");
+
+      try {
+        const masterSeedEncryptedRaw = await storage.getItem("masterSeed");
+        if (!masterSeedEncryptedRaw) {
+          throw new Error("Wallet data is corrupted. Please restore from your recovery phrase.");
+        }
+
+        const masterSeedEncrypted = JSON.parse(masterSeedEncryptedRaw);
+
+        const decryptedBytes = await decryptStringFromXChaCha20Poly1305(
+          {
+            salt,
+            ...masterSeedEncrypted
+          },
+          password
+        );
+
+        // If decryption succeeds, the password is correct
+        await storage.setItem("currentSession", password);
+        router.replace("/home");
+      } catch (e) {
+        // Decryption failed implies incorrect password or corrupted data
+        throw new Error("Invalid password or wallet data");
+      }
+
     } catch (e) {
-      console.log(e);
-      (e as Error).message ? setError((e as Error).message) : setError(error);
+      setError((e as Error).message);
+    } finally {
       setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -92,16 +95,8 @@ const LoginScreen = () => {
                 Login
               </Text>
               <Text style={[styles.subtitle, { fontFamily: getFontFamily() }]}>
-                Sign in to your account.
+                Sign in to your wallet.
               </Text>
-              <TextInput
-                style={[styles.input, { fontFamily: getFontFamily() }]}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
               <TextInput
                 style={[styles.input, { fontFamily: getFontFamily() }]}
                 placeholder="Password"
@@ -112,6 +107,7 @@ const LoginScreen = () => {
               <TouchableOpacity
                 style={styles.button}
                 onPress={signInWithPassword}
+                disabled={loading} // Prevent multiple presses
               >
                 <Text
                   style={[styles.buttonText, { fontFamily: getFontFamily() }]}
@@ -119,15 +115,12 @@ const LoginScreen = () => {
                   Login
                 </Text>
               </TouchableOpacity>
-              <GoogleAuthButton
-                handler={() => AuthWithOAuth(router)}
-                content="Sign in with Google"
-              />
+
               <Link href={"/auth/signup"}>
                 <Text
                   style={[styles.linkText, { fontFamily: getFontFamily() }]}
                 >
-                  Don't have an account? Sign up
+                  Don't have a wallet? Create one
                 </Text>
               </Link>
             </View>

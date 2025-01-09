@@ -10,7 +10,11 @@ import {
   View,
 } from "react-native";
 import { getFontFamily } from "../../lib/utils/fontFamily";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { storage } from "@/lib/storage";
+import { blake3 } from "@noble/hashes/blake3";
+import { bytesToHex } from "@noble/hashes/utils";
+import AddressEvolutionCard from "../../lib/components/EvolutionaryAddressCard";
 
 export interface ClientTanglePayAccount {
   debits_pending: bigint;
@@ -47,12 +51,42 @@ export declare enum QueryFilterFlags {
   none = 0,
   reversed = 1,
 }
-
 const HomeScreen = () => {
-  const [accounts, setAccounts] = useState<ClientTanglePayAccount[]>([]);
-  // const [transfers, setTransfers] = useState<ClientTanglePayTransfer[]>([]);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [currentHash, setCurrentHash] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadInitialHash = async () => {
+      try {
+        const stored = await storage.getItem("currentHash");
+        if (stored) {
+          setCurrentHash(stored);
+        } else {
+          // Generate initial hash if none exists
+          const initialBytes = blake3(
+            new TextEncoder().encode(Date.now().toString())
+          );
+          const initialHash = "0x" + bytesToHex(initialBytes);
+          await storage.setItem("currentHash", initialHash);
+          setCurrentHash(initialHash);
+        }
+      } catch (err) {
+        setError("Failed to load address");
+      }
+    };
+
+    loadInitialHash();
+  }, []);
+
+  const handleAddressEvolution = async (newHash: string) => {
+    try {
+      await storage.setItem("currentHash", newHash);
+      setCurrentHash(newHash);
+    } catch (err) {
+      setError("Failed to save evolved address");
+    }
+  };
 
   const router = useRouter();
 
@@ -69,23 +103,6 @@ const HomeScreen = () => {
     }
     router.dismissTo("/auth/login");
   };
-
-  const fetchAccounts = async () => {
-    const lookup = await fetch(`http://10.0.2.2:8000/accounts`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    if (!lookup || !lookup.ok) {
-      console.log(lookup.status);
-      setError("Something went wrong");
-    }
-    const data = await lookup.json();
-    console.log("data", data);
-    setAccounts(data);
-  };
-
 
   return (
     <View style={styles.container}>
@@ -125,7 +142,7 @@ const HomeScreen = () => {
           transparent
           visible={!!error}
           animationType="fade"
-          onRequestClose={() => setError(undefined)}
+          onRequestClose={() => setError(null)}
         >
           <View style={styles.errorOverlay}>
             <View style={styles.errorModal}>
@@ -133,7 +150,7 @@ const HomeScreen = () => {
               <Text style={styles.errorMessage}>{error}</Text>
               <TouchableOpacity
                 style={styles.errorButton}
-                onPress={() => setError(undefined)}
+                onPress={() => setError(null)}
               >
                 <Text style={styles.errorButtonText}>Close</Text>
               </TouchableOpacity>
@@ -162,6 +179,11 @@ const HomeScreen = () => {
         </View>
       </View>
 
+      <AddressEvolutionCard
+        currentAddress={currentHash}
+        onEvolve={handleAddressEvolution}
+      />
+
       {/* Quick Actions */}
       <View style={styles.quickActions}>
         <TouchableOpacity style={styles.quickActionItem}>
@@ -184,7 +206,14 @@ const HomeScreen = () => {
 
       {/* Recent Transactions */}
       <View style={styles.transactions}>
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <View style={styles.txHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          </View>
+          <Link href={"/history/TxHistory"} style={styles.link}>
+            <Text>View Full Transaction History</Text>
+          </Link>
+        </View>
         <ScrollView>
           <TransactionItem
             title="Netflix Subscription"
@@ -209,6 +238,8 @@ const HomeScreen = () => {
     </View>
   );
 };
+
+export default HomeScreen;
 
 const TransactionItem = ({
   title,
@@ -315,6 +346,16 @@ const styles = StyleSheet.create({
   transactions: {
     flex: 1,
   },
+  txHeader: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  link: {
+    position: "relative",
+    left: 30,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -417,5 +458,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-
-export default HomeScreen;
